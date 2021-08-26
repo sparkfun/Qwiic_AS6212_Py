@@ -55,8 +55,33 @@ def runExample():
 		return
 
 	myTempSensor.begin()
+	time.sleep(1)
 
 	print("Initialized.")
+
+	myTempSensor.set_conversion_cycletime(myTempSensor.AS6212_CONVERSION_CYCLE_TIME_250MS)
+
+	#myTempSensor.print_config_binary()
+
+	print("Set alert polarity to active low (0)")
+	myTempSensor.set_alert_polarity(0)
+	time.sleep(0.25)
+	myTempSensor.print_config_binary()
+
+	time.sleep(1)
+	
+	print("Set alert polarity to active high (1)")
+	myTempSensor.set_alert_polarity(1)
+	time.sleep(0.25)
+	myTempSensor.print_config_binary()
+
+	time.sleep(1)
+
+
+
+
+
+
 
 	# # Initialize configuration settings
 	# # These settings are saved in the sensor, even if it loses power

@@ -45,7 +45,6 @@ CONVER_RATE_1 =	0x0040	#7
 CONVER_RATE_0 =	0x0020	#6
 ALERT			=	0x0010	#5
 
-
 AS6212_RESOLUTION = 0.0078125
 
 AS6212_CONFIG_BIT_ALERT = 5
@@ -57,17 +56,6 @@ AS6212_CONFIG_BIT_ALERT_POL = 10
 AS6212_CONFIG_BIT_CONSECUTIVE_FAULTS_0 = 11
 AS6212_CONFIG_BIT_CONSECUTIVE_FAULTS_1 = 12
 AS6212_CONFIG_BIT_SINGLE_SHOT = 15
-
-AS6212_MODE_COMPARATOR = 0
-AS6212_MODE_INTERRUPT = 1
-
-AS6212_CONVERSION_CYCLE_TIME_125MS = 3
-AS6212_CONVERSION_CYCLE_TIME_250MS = 2
-AS6212_CONVERSION_CYCLE_TIME_1000MS = 1
-AS6212_CONVERSION_CYCLE_TIME_4000MS = 0
-
-AS6212_ALERT_ACTIVE_HIGH = 1
-AS6212_ALERT_ACTIVE_LOW = 0
 
 #Address can be set using jumpers on bottom of board (default: 0x48)
 _AVAILABLE_I2C_ADDRESS = [0x48, 0x44, 0x45, 0x46, 0x47, 0x49, 0x4A, 0x4B]
@@ -91,6 +79,17 @@ class QwiicAs6212Sensor(object):
     """
     device_name         = _DEFAULT_NAME
     available_addresses = _AVAILABLE_I2C_ADDRESS
+
+    AS6212_MODE_COMPARATOR = 0
+    AS6212_MODE_INTERRUPT = 1
+
+    AS6212_CONVERSION_CYCLE_TIME_125MS = 3
+    AS6212_CONVERSION_CYCLE_TIME_250MS = 2
+    AS6212_CONVERSION_CYCLE_TIME_1000MS = 1
+    AS6212_CONVERSION_CYCLE_TIME_4000MS = 0
+
+    AS6212_ALERT_ACTIVE_HIGH = 1
+    AS6212_ALERT_ACTIVE_LOW = 0
 
     # Constructor
     def __init__(self, address=None, i2c_driver=None):
@@ -161,10 +160,14 @@ class QwiicAs6212Sensor(object):
         data = self._i2c.readBlock(self.address, register_to_read, 2)
 
         #Combine bytes to create a single signed int
-        return ( (data[0] << 8 ) | data[0] )
+        return ( (data[0] << 8 ) | data[1] )
 
     def write_register(self, reg, data):
-        self._i2c.writeBlock(self.address, reg, data)
+        data_bytes = [0,0]
+        data_bytes[1] |= (data & 0xFF)
+        data_bytes[0] |= data >> 8
+        print(data_bytes)
+        self._i2c.writeBlock(self.address, reg, data_bytes)
 
     def read_config(self):
         return self.read_2_byte_register(CONFIG_REG)
@@ -195,24 +198,53 @@ class QwiicAs6212Sensor(object):
 
         self.tempF = self.read_temp_c() * 9.0 / 5.0 + 32.0
         return self.tempF
-        
-    def set_conversion_rate(self, rate):
+
+    def set_conversion_cycletime(self, cycletime):
         """
-        // Set the conversion rate (0-3)
-        // 0 - 0.25 Hz
-        // 1 - 1 Hz
-	// 2 - 4 Hz (default)
-        // 3 - 8 Hz
-        """
+        sets the conversion cylce time (aka convertion rate) in the config register
+        valid settings are:
         
-        configByte = self._i2c.readBlock(self.address, CONFIG_REG, 2)
-        rate = rate&0x03
-                
-        # Load new conversion rate
-        configByte[1] &= 0x3F           # Clear CR0/1 (bit 6 and 7 of second byte)
-        configByte[1] |= rate<<6        # Shift in new conversion rate
-      
-        self._i2c.writeBlock(self.address, CONFIG_REG, configByte)
+        AS6212_CONVERSION_CYCLE_TIME_125MS
+        AS6212_CONVERSION_CYCLE_TIME_250MS
+        AS6212_CONVERSION_CYCLE_TIME_1000MS
+        AS6212_CONVERSION_CYCLE_TIME_4000MS
+        """
+        #discard out of range values
+        if cycletime > 3 or cycletime < 0:
+            return nan
+        configReg = self.read_config()
+        configBit_6 = self.bit_read(cycletime, 0)
+        configBit_7 = self.bit_read(cycletime, 1)
+        configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_CONVERSION_RATE_0, configBit_6)
+        configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_CONVERSION_RATE_1, configBit_7)
+        self.write_config(configReg)      
+
+    def set_alert_polarity(self, polarity):
+        """
+        Set the polarity of Alert
+        0 - Active LOW
+        1 - Active HIGH
+        """
+        configReg = self.read_config()
+        configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_ALERT_POL, polarity)
+        self.print_binary(configReg)
+        
+        self.write_config(configReg)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           
     def sleep(self):
         """
@@ -222,19 +254,7 @@ class QwiicAs6212Sensor(object):
         sleepValue |= 0x01	# Set SD (bit 0 of first byte)
         self._i2c.writeByte(self.address, CONFIG_REG, sleepValue)
 
-    def set_alert_polarity(self, polarity):
-        """
-        Set the polarity of Alert
-        0 - Active LOW
-        1 - Active HIGH
-        """
-        configByte = self._i2c.readByte(self.address, CONFIG_REG)
-        
-        # Load new value for polarity
-        configByte &= 0xFB           # Clear POL (bit 2 of registerByte)
-        configByte |= polarity<<2    # Shift in new POL bit
 
-        self._i2c.writeByte(self.address, CONFIG_REG, configByte)
 
     def alert(self):
         """
@@ -398,29 +418,7 @@ class QwiicAs6212Sensor(object):
         return self.read_high_temp_c()*9.0/5.0 + 32.0
 
 
-    def set_faults(self, faults):
-        """
-	    Set the number of consecutive faults
-	    1 - 1 fault
-	    2 - 2 faults
-	    3 - 3 faults
-	    4 - 4 faults
-        """
-        if (faults > 4) or (faults < 1):
-            return NaN
-        else:
-            faults = faults - 1 # consecutive faults value is stored in just 2 bits in the config reg,
-            # so we must convert from "human readable" ints 1-4 to stored values (0-3).
 
-            configReg = self.read_config()
-
-            configBit_11 = self.bit_read(faults, 0)
-            configBit_12 = self.bit_read(faults, 1)
-
-            configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_CONSECUTIVE_FAULTS_0, configBit_11)
-            configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_CONSECUTIVE_FAULTS_1, configBit_12)
-
-            self.setConfig(configReg);
             
         
     def set_alert_mode(self, mode):
@@ -438,20 +436,78 @@ class QwiicAs6212Sensor(object):
 
         self._i2c.writeByte(self.address, CONFIG_REG, configByte)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def set_faults(self, faults):
+        """
+	    Set the number of consecutive faults
+	    1 - 1 fault
+	    2 - 2 faults
+	    3 - 3 faults
+	    4 - 4 faults
+        """
+        if (faults > 4) or (faults < 1):
+            return NaN
+        faults = faults - 1 # consecutive faults value is stored in just 2 bits in the config reg,
+        # so we must convert from "human readable" ints 1-4 to stored values (0-3).
+        configReg = self.read_config()
+        configBit_11 = self.bit_read(faults, 0)
+        configBit_12 = self.bit_read(faults, 1)
+        configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_CONSECUTIVE_FAULTS_0, configBit_11)
+        configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_CONSECUTIVE_FAULTS_1, configBit_12)
+        self.setConfig(configReg)
+
+
     def bit_read(self, value, bit):
         return (((value) >> (bit)) & 0x01)
 
     def bit_set(self, value, bit):
-        return ((value) |= (1 << (bit)))
+        return ((value) | (1 << (bit)))
 
     def bit_clear(self, value, bit):
-        return ((value) &= ~(1 << (bit)))
+        return ((value) & ~(1 << (bit)))
 
     def bit_write(self, value, bit, bitvalue):
         if (bitvalue == 1):
-            return self.bitSet(value, bit)
+            return self.bit_set(value, bit)
         if (bitvalue == 0):
-            return self.bitClear(value, bit)
+            return self.bit_clear(value, bit)
+    
+    def print_config_binary(self):
+        configReg = self.read_config()
+        print("\nConfig: ")
+        configBin = ""
+        for i in range(15, -1, -1):
+            configBin += str(self.bit_read(configReg, i))
+            if i == 8:
+                configBin += " "
+        print(configBin)
+
+    def print_binary(self, data):
+        configReg = self.read_config()
+        print("\ndata: ")
+        dataBin = ""
+        for i in range(15, -1, -1):
+            dataBin += str(self.bit_read(data, i))
+            if i == 8:
+                dataBin += " "
+        print(dataBin)        
+        
 
 
 
