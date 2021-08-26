@@ -63,63 +63,64 @@ def runExample():
 
 	#myTempSensor.print_config_binary()
 
-	print("Set alert polarity to active low (0)")
-	myTempSensor.set_alert_polarity(0)
-	time.sleep(0.25)
-	myTempSensor.print_config_binary()
 
-	time.sleep(1)
 	
-	print("Set alert polarity to active high (1)")
-	myTempSensor.set_alert_polarity(1)
-	time.sleep(0.25)
-	myTempSensor.print_config_binary()
+##	print("Set alert polarity to active high (1)")
+##	myTempSensor.set_alert_polarity(1)
+##	time.sleep(0.25)
+##	myTempSensor.print_config_binary()
+##
+##	time.sleep(1)
+##
+##	print("Set alert polarity to active low (0)")
+##	myTempSensor.set_alert_polarity(0)
+##	time.sleep(0.25)
+##	myTempSensor.print_config_binary()
+##
+##	time.sleep(1)
+##
+##	print("Set interrupt mode to COMPARATOR (0)")
+##	myTempSensor.set_interrupt_mode(myTempSensor.AS6212_MODE_COMPARATOR)
+##	time.sleep(0.25)
+##	myTempSensor.print_config_binary()
+##
+##	time.sleep(1)
 
-	time.sleep(1)
-
-
-
-
-
-
-
-	# # Initialize configuration settings
-	# # These settings are saved in the sensor, even if it loses power
+	# Initialize configuration settings
+	# These settings are saved in the sensor, even if it loses power
   
-	# # set the number of consecutive faults before triggering alarm.
-	# # valid options: 1,2,3 or 4
-	# myTempSensor.set_faults(1)
+	# set the number of consecutive faults before triggering alarm.
+	# valid options: 1,2,3 or 4
+	myTempSensor.set_consecutive_faults(1)
   
-	# # set the polarity of the Alarm. (0:Active LOW, 1:Active HIGH).
-	# myTempSensor.set_alert_polarity(1)	# Active HIGH
+	# set the polarity of the Alert. (0:Active LOW, 1:Active HIGH).
+	myTempSensor.set_alert_polarity(myTempSensor.AS6212_ALERT_ACTIVE_LOW)
   
-	# # set the sensor in Comparator Mode (0) or Interrupt Mode (1).
-	# myTempSensor.set_alert_mode(0)	# Comparator Mode.
+	# set the sensor in Comparator Mode (0) or Interrupt Mode (1).
+	myTempSensor.set_interrupt_mode(myTempSensor.AS6212_MODE_COMPARATOR)
   
-	# # set the Conversion Rate (how quickly the sensor gets a new reading)
-	# #0-3: 0:0.25Hz, 1:1Hz, 2:4Hz, 3:8Hz
-	# myTempSensor.set_conversion_rate(2)
+	# set the Conversion Cycle Time (how quickly the sensor gets a new reading)
+	myTempSensor.set_conversion_cycletime(myTempSensor.AS6212_CONVERSION_CYCLE_TIME_250MS)
 
-	# #set T_HIGH, the upper limit to trigger the alert on
-	# myTempSensor.set_high_temp_f(85.0)  # set T_HIGH in F
-	# #myTempSensor.set_high_temp_c(29.4) # set T_HIGH in C
+	# set T_HIGH, the upper limit to trigger the alert on
+	myTempSensor.set_high_temp_f(78.0)  # set T_HIGH in F
+	# myTempSensor.set_high_temp_c(25.56) # set T_HIGH in C
   
-	# #set T_LOW, the lower limit to shut turn off the alert
-	# myTempSensor.set_low_temp_f(84.0)	# set T_LOW in F
-	# #myTempSensor.set_low_temp_c(26.67)	# set T_LOW in C
+	# set T_LOW, the lower limit to shut turn off the alert
+	myTempSensor.set_low_temp_f(75.0)	# set T_LOW in F
+	# myTempSensor.set_low_temp_c(23.89)	# set T_LOW in C
 		
 	while True:		
 		temperature = myTempSensor.read_temp_f()
 		
 		# Check for alert
-		#alertRegisterState = myTempSensor.alert()		# read the Alert from register
+		alertRegisterState = myTempSensor.get_alert_status()		# read the Alert from register
 		
 		# Place sensor in sleep mode to save power.
 		# Current consumption typically <0.5uA.
 		#myTempSensor.sleep()
 		
-		print("Temperature: ", temperature)
-		#print("Alert Register: ", alertRegisterState)
+		print("Temperature: ", temperature, "\tAlert Register: ", alertRegisterState)
 		time.sleep(0.5)
 	
 

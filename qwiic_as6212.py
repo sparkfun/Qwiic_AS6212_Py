@@ -166,7 +166,6 @@ class QwiicAs6212Sensor(object):
         data_bytes = [0,0]
         data_bytes[1] |= (data & 0xFF)
         data_bytes[0] |= data >> 8
-        print(data_bytes)
         self._i2c.writeBlock(self.address, reg, data_bytes)
 
     def read_config(self):
@@ -199,6 +198,90 @@ class QwiicAs6212Sensor(object):
         self.tempF = self.read_temp_c() * 9.0 / 5.0 + 32.0
         return self.tempF
 
+
+
+    def set_alert_polarity(self, polarity):
+        """
+        Set the polarity of Alert
+        AS6212_ALERT_ACTIVE_HIGH (1)
+        AS6212_ALERT_ACTIVE_LOW (0)
+        """
+        configReg = self.read_config()
+        configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_ALERT_POL, polarity)        
+        self.write_config(configReg)
+        
+    def get_alert_polarity(self):
+        """
+        Get the polarity of Alert
+        AS6212_ALERT_ACTIVE_HIGH (1)
+        AS6212_ALERT_ACTIVE_LOW (0)
+        """
+        configReg = self.read_config()
+        return self.bit_read(configReg, AS6212_CONFIG_BIT_ALERT_POL)            
+
+    def set_interrupt_mode(self, mode):
+        """
+        sets the interrupt mode bits in the config register
+
+        valid options are:
+        AS6212_MODE_COMPARATOR (0)
+        AS6212_MODE_INTERRUPT (1)
+        """
+        configReg = self.read_config()
+        configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_INTERRUPT_MODE, mode)        
+        self.write_config(configReg)
+
+    def get_interrupt_mode(self):
+        """
+        Get the interrupt mode bit
+        AS6212_MODE_COMPARATOR (0)
+        AS6212_MODE_INTERRUPT (1)
+        """
+        configReg = self.read_config()
+        return self.bit_read(configReg, AS6212_CONFIG_BIT_INTERRUPT_MODE)
+
+    def get_alert_status(self):
+        """
+        Get the status of the alert bit (0 or 1)
+        """
+        configReg = self.read_config()
+        return self.bit_read(configReg, AS6212_CONFIG_BIT_ALERT)              
+
+    def set_consecutive_faults(self, faults):
+        """
+	    Set the number of consecutive faults
+	    1 - 1 fault
+	    2 - 2 faults
+	    3 - 3 faults
+	    4 - 4 faults
+        """
+        if (faults > 4) or (faults < 1):
+            return NaN
+        faults = faults - 1 # consecutive faults value is stored in just 2 bits in the config reg,
+        # so we must convert from "human readable" ints 1-4 to stored values (0-3).
+        configReg = self.read_config()
+        configBit_11 = self.bit_read(faults, 0)
+        configBit_12 = self.bit_read(faults, 1)
+        configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_CONSECUTIVE_FAULTS_0, configBit_11)
+        configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_CONSECUTIVE_FAULTS_1, configBit_12)
+        self.write_config(configReg)
+
+    def get_consecutive_faults(self):
+        """
+                Gets the number of consecutive faults that need to happen in a row before alert is changed.
+                valid settings are 1,2,3 or 4 but this correspond to other bit values
+                in the configuration register bits 11 and 12
+        """
+        configReg = self.read_config()
+        consecutive_faults_bit_0 = self.bit_read(configReg, AS6212_CONFIG_BIT_CONSECUTIVE_FAULTS_0)
+        consecutive_faults_bit_1 = self.bit_read(configReg, AS6212_CONFIG_BIT_CONSECUTIVE_FAULTS_1)
+        faults = 0
+        faults = self.bit_write(faults, 0, consecutive_faults_bit_0)
+        faults = self.bit_write(faults, 1, consecutive_faults_bit_1)
+        faults = ( faults + 1 ) # consecutive faults is stored in just two bits in teh config reg
+        # so we must +1 to make it the stored values (0-3) human readable (1-4)
+        return faults
+
     def set_conversion_cycletime(self, cycletime):
         """
         sets the conversion cylce time (aka convertion rate) in the config register
@@ -217,123 +300,105 @@ class QwiicAs6212Sensor(object):
         configBit_7 = self.bit_read(cycletime, 1)
         configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_CONVERSION_RATE_0, configBit_6)
         configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_CONVERSION_RATE_1, configBit_7)
-        self.write_config(configReg)      
-
-    def set_alert_polarity(self, polarity):
+        self.write_config(configReg)
+        
+    def get_conversion_cycletime(self):
         """
-        Set the polarity of Alert
-        0 - Active LOW
-        1 - Active HIGH
+                Gets the conversion cycle time (aka conversion rate) in teh config reg
+                Returns the cycle time in milliseconds: (125/250/1000/4000)
         """
         configReg = self.read_config()
-        configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_ALERT_POL, polarity)
-        self.print_binary(configReg)
-        
+        conversion_rate_bit_0 = self.bit_read(configReg, AS6212_CONFIG_BIT_CONVERSION_RATE_0)
+        conversion_rate_bit_1 = self.bit_read(configReg, AS6212_CONFIG_BIT_CONVERSION_RATE_1)
+        cycletime_val = 0
+        cycletime_val = self.bit_write(cycletime_val, 0, conversion_rate_bit_0)
+        cyceltime_val = self.bit_write(cycletime_val, 1, conversion_rate_bit_1)
+        if cycletime_val == AS6212_CONVERSION_CYCLE_TIME_125MS:
+            return 125
+        if cycletime_val == AS6212_CONVERSION_CYCLE_TIME_250MS:
+            return 250
+        if cycletime_val == AS6212_CONVERSION_CYCLE_TIME_1000MS:
+            return 1000
+        if cycletime_val == AS6212_CONVERSION_CYCLE_TIME_4000MS:
+            return 4000
+      
+    def set_sleep_mode(self, mode):
+        """
+                sets the sleep mode bit (on or off) in the config register
+
+                valid options are:
+                0 = SLEEP MODE OFF
+                1 = SLEEP MODE ON
+        """
+        configReg = self.read_config()
+        configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_SLEEP_MODE, mode)
+        if mode == 1: # as recommended in datasheet section 6.2.4
+            configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_SINGLE_SHOT, 1)
         self.write_config(configReg)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          
-    def sleep(self):
+    def get_sleep_mode(self):
         """
-        Switch sensor to low power mode
+        gets the status of the sleep mode bit from the config register
         """
-        sleepValue = self._i2c.readByte(self.address, CONFIG_REG)
-        sleepValue |= 0x01	# Set SD (bit 0 of first byte)
-        self._i2c.writeByte(self.address, CONFIG_REG, sleepValue)
+        configReg = self.read_config()
+        return self.bit_read(configReg, AS6212_CONFIG_BIT_SLEEP_MODE)
+
+    def trigger_single_shot_conversion(self):
+        """
+                Sets the SS mode bit in the config register
+                Note, you must be in sleep mode for this to work
+        """
+        configReg = self.read_config()
+        if self.bit_read(configReg, AS6212_CONFIG_BIT_SLEEP_MODE) == 1:
+            configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_SINGLE_SHOT, 1)
+            self.write_config(configReg)
+
+    def get_single_shot_status(self):
+        """
+        gets the status of the single shot bit from the config register
+        0 = No conversion ongoing / conversion finished
+        1 = Start single shot conversion / conversion ongoing
+        """
+        configReg = self.read_config()
+        return self.bit_read(configReg, AS6212_CONFIG_BIT_SINGLE_SHOT)
 
 
 
-    def alert(self):
-        """
-        Returns state of Alert register
-        """
-        alert = self._i2c.readByte(self.address, CONFIG_REG)
-        alert &= 0x20   #Clear everything but the alert bit (bit 5)
-        return alert>>5
-        
-    def one_shot(self, setOneShot = 0):
-        """
-        Sets the SingleShot Register. Returns 1 after the conversion is complete
-        """
-        registerByte = self._i2c.readByte(self.address, CONFIG_REG)
-        if(setOneShot == 1):
-                registerByte |= (1<<7)
-                self._i2c.writeByte(self.address, CONFIG_REG, registerByte)
-                return 0
-        else:
-                registerByte &= (1<<7)
-                return (registerByte>>7)
+
+
+
+
+
+
 
 
     def set_low_temp_c(self, temperature):
         """
         Sets T_LOW (degrees C) alert threshold
         """
-        if(temperature > 150.0):
-                temperature = 150.0
-        if(temperature < -55.0):
-                temperature = -55.0
-                
-        registerByte = self._i2c.readBlock(self.address, CONFIG_REG, 2)
+        if temperature >= 0: # positive number or zero
+            low_temp = int(temperature / 0.0078125)
+        if temperature < 0: #negative number
+            temperature /= 0.0078125
+            temp_int = int(temperature)
+            temp_int &= 0xFFFF
+            low_temp = ( ~(temp_int) + 1 ) * -1
+        self.write_register(TLOW_REG, low_temp)
         
-        #Check if temperature should be 12 or 13 bits
-        # 0 - temp data will be 12 bits
-        # 1 - temp data will be 13 bits
-        extendedMode = (registerByte[1]&0x10) >> 4	
-                                                                
-        #Convert analog temperature to digital value
-        temperature = temperature/0.0625
-        
-        if(extendedMode):	#13-bit mode
-                registerByte[0] = int(temperature)>>5
-                registerByte[1] = (int(temperature)<<3)
-        else:
-                registerByte[0] = int(temperature)>>4
-                registerByte[1] = int(temperature)<<4
-              
-        self._i2c.writeBlock(self.address, T_LOW_REGISTER, registerByte)
 
     def set_high_temp_c(self, temperature):
         """
-        Sets T_LOW (degrees C) alert threshold
+        Sets THIGH (degrees C) alert threshold
         """
-
-        if(temperature > 150.0):
-                temperature = 150.0
-        if(temperature < -55.0):
-                temperature = -55.0
-        registerByte = self._i2c.readBlock(self.address, CONFIG_REG, 2)
+        if temperature >= 0: # positive number or zero
+            high_temp = int(temperature / 0.0078125)
+        if temperature < 0: #negative number
+            temperature /= 0.0078125
+            temp_int = int(temperature)
+            temp_int &= 0xFFFF
+            high_temp = ( ~(temp_int) + 1 ) * -1
+        self.write_register(THIGH_REG, high_temp)
         
-        #Check if temperature should be 12 or 13 bits
-        # 0 - temp data will be 12 bits
-        # 1 - temp data will be 13 bits
-        extendedMode = (registerByte[1]&0x10) >> 4	
-                                                                
-        #Convert analog temperature to digital value
-        temperature = temperature/0.0625
-                
-        if(extendedMode):	#13-bit mode
-                registerByte[0] = int(temperature)>>5
-                registerByte[1] = (int(temperature)<<3)
-        else:
-                registerByte[0] = int(temperature)>>4
-                registerByte[1] = int(temperature)<<4
-                
-        self._i2c.writeBlock(self.address, T_HIGH_REGISTER, registerByte)
-
     def set_low_temp_f(self, temperature):
         """
         Sets T_LOW (degrees F) alert threshold
@@ -354,54 +419,13 @@ class QwiicAs6212Sensor(object):
         """
         Gets T_LOW (degrees C) alert threshold
         """
-        configByte = self._i2c.readBlock(self.address, CONFIG_REG, 2)
-
-        # 0 - temp data will be 12 bits
-        # 1 - temp data will be 13 bits
-        extendedMode = (configByte[1]&0x10)>>4	
-
-        lowTempByte = self._i2c.readBlock(self.address, T_LOW_REGISTER, 2)
-
-        if(lowTempByte[0] == 0xFF and lowTempByte[1] == 0xFF):
-                return NAN
-
-        if (extendedMode):
-                digitalTemp = ((lowTempByte[0]) << 5) | (lowTempByte[1] >> 3)
-                if(digitalTemp > 0xFFF):
-                        digitalTemp |= 0xE000
-        else:
-                digitalTemp = ((lowTempByte[0]) << 4) | (lowTempByte[1] >> 4)
-                if(digitalTemp > 0x7FF):
-                        digitalTemp |= 0xF000
-                        
-        return digitalTemp*0.0625    
+  
         
                     
     def read_high_temp_c(self):
         """
         Gets T_HIGH (degrees C) alert threshold
         """
-        configByte = self._i2c.readBlock(self.address, CONFIG_REG, 2)
-
-        # 0 - temp data will be 12 bits
-        # 1 - temp data will be 13 bits
-        extendedMode = (configByte[1]&0x10)>>4	
-
-        highTempByte = self._i2c.readBlock(self.address, T_HIGH_REGISTER, 2)
-
-        if(highTempByte[0] == 0xFF and highTempByte[1] == 0xFF):
-                return NAN
-
-        if (extendedMode):
-                digitalTemp = ((highTempByte[0]) << 5) | (highTempByte[1] >> 3)
-                if(digitalTemp > 0xFFF):
-                        digitalTemp |= 0xE000
-        else:
-                digitalTemp = ((highTempByte[0]) << 4) | (highTempByte[1] >> 4)
-                if(digitalTemp > 0x7FF):
-                        digitalTemp |= 0xF000
-                        
-        return digitalTemp*0.0625
 
 
     def read_low_temp_f(self):
@@ -421,56 +445,10 @@ class QwiicAs6212Sensor(object):
 
             
         
-    def set_alert_mode(self, mode):
-        """
-	// Set Alert type
-        // 0 - Comparator Mode: Active from temp > T_HIGH until temp < T_LOW
-        // 1 - Thermostat Mode: Active when temp > T_HIGH until any read operation occurs
-	
-        """
-        configByte = self._i2c.readByte(self.address, CONFIG_REG)
-        
-        #Load new conversion rate
-        configByte &= 0xFD            # Clear old TM bit (bit 1 of first byte)
-        configByte |= mode<<1	        # Shift in new TM bit
-
-        self._i2c.writeByte(self.address, CONFIG_REG, configByte)
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    def set_faults(self, faults):
-        """
-	    Set the number of consecutive faults
-	    1 - 1 fault
-	    2 - 2 faults
-	    3 - 3 faults
-	    4 - 4 faults
-        """
-        if (faults > 4) or (faults < 1):
-            return NaN
-        faults = faults - 1 # consecutive faults value is stored in just 2 bits in the config reg,
-        # so we must convert from "human readable" ints 1-4 to stored values (0-3).
-        configReg = self.read_config()
-        configBit_11 = self.bit_read(faults, 0)
-        configBit_12 = self.bit_read(faults, 1)
-        configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_CONSECUTIVE_FAULTS_0, configBit_11)
-        configReg = self.bit_write(configReg, AS6212_CONFIG_BIT_CONSECUTIVE_FAULTS_1, configBit_12)
-        self.setConfig(configReg)
 
 
     def bit_read(self, value, bit):
