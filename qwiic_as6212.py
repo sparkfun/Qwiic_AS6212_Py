@@ -414,19 +414,31 @@ class QwiicAs6212Sensor(object):
         new_temp = (temperature - 32)*5/9    # Convert temperature to C
         self.set_high_temp_c(new_temp)           # Set T_HIGH
 
-
     def read_low_temp_c(self):
         """
         Gets T_LOW (degrees C) alert threshold
         """
-  
-        
-                    
+        digital_temp = self.read_2_byte_register(TLOW_REG)
+        if (digital_temp < 32768):
+                finalTempC = float(digital_temp) * 0.0078125
+        if (digital_temp >= 32768):
+                digital_temp = ~digital_temp
+                digital_temp &= 0xFFFF
+                finalTempC = (( digital_temp + 1 ) * 0.0078125) * -1
+        return finalTempC       
+         
     def read_high_temp_c(self):
         """
         Gets T_HIGH (degrees C) alert threshold
         """
-
+        digital_temp = self.read_2_byte_register(THIGH_REG)
+        if (digital_temp < 32768):
+                finalTempC = digital_temp * 0.0078125
+        if (digital_temp >= 32768):
+                digital_temp = ~digital_temp
+                digital_temp &= 0xFFFF
+                finalTempC = (( digital_temp + 1 ) * 0.0078125) * -1
+        return finalTempC  
 
     def read_low_temp_f(self):
         """

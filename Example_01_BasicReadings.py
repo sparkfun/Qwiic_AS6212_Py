@@ -59,33 +59,6 @@ def runExample():
 
 	print("Initialized.")
 
-	myTempSensor.set_conversion_cycletime(myTempSensor.AS6212_CONVERSION_CYCLE_TIME_250MS)
-
-	#myTempSensor.print_config_binary()
-
-
-	
-##	print("Set alert polarity to active high (1)")
-##	myTempSensor.set_alert_polarity(1)
-##	time.sleep(0.25)
-##	myTempSensor.print_config_binary()
-##
-##	time.sleep(1)
-##
-##	print("Set alert polarity to active low (0)")
-##	myTempSensor.set_alert_polarity(0)
-##	time.sleep(0.25)
-##	myTempSensor.print_config_binary()
-##
-##	time.sleep(1)
-##
-##	print("Set interrupt mode to COMPARATOR (0)")
-##	myTempSensor.set_interrupt_mode(myTempSensor.AS6212_MODE_COMPARATOR)
-##	time.sleep(0.25)
-##	myTempSensor.print_config_binary()
-##
-##	time.sleep(1)
-
 	# Initialize configuration settings
 	# These settings are saved in the sensor, even if it loses power
   
@@ -109,6 +82,9 @@ def runExample():
 	# set T_LOW, the lower limit to shut turn off the alert
 	myTempSensor.set_low_temp_f(75.0)	# set T_LOW in F
 	# myTempSensor.set_low_temp_c(23.89)	# set T_LOW in C
+
+	print("TLOW F: ", myTempSensor.read_low_temp_f())
+	print("THIGH F: ", myTempSensor.read_high_temp_f())
 		
 	while True:		
 		temperature = myTempSensor.read_temp_f()
