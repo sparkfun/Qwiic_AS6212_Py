@@ -1,0 +1,6 @@
+Qwiic AS6212 Py
+=============================================
+
+The AS6212 digital temperature sensor from ams provides high-accuracy temperature data combined with excellent power consumption to combine into a great temperature sensing package on the SparkFun Digital Temperature Sensor Breakout - AS6212 (Qwiic). The sensor measures temperature data up to ±0.2°C; accuracy over a wide range (-40°C; to +125°C;) and consumes an average of 6µA. The AS6212 communicates via I2C and has eight available I2C addresses selected by a pair of solder jumpers on the board. The breakout routes the I2C interface to a pair of Qwiic connectors to work with our plug-and-play Qwiic Ecosystem but also routes the bus and other pins to a standard 0.1"-spaced PTH header for users who prefer a soldered connection.
+
+The AS6212 features an alert output to trigger when recorded temperature data crosses user-desingated thresholds. The low and high values make it perfect to monitor systems that must remain in a specific temperature range. Along with the alert pin, the AS6212's sleep mode works with a single-shot temperature measurement to wake the device, take a single reading and then return to sleep mode for extreme low-power/battery-powered temperature measurement projects. 
