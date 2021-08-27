@@ -1,3 +1,55 @@
+#!/usr/bin/env python
+#-----------------------------------------------------------------------------
+# qwiic_as6212.py
+#
+# Python module for the AS6212 Digital Temperature Sensor Qwiic
+# 
+#------------------------------------------------------------------------
+#
+# Written by Pete Lewis, SparkFun Electronics, Aug 2021
+# 
+# Thanks to Alex Wende and Lori Croster @ SparkFun Electronics
+# for code examples from TMP102 Python Package, May 2021
+# (https://github.com/sparkfun/Qwiic_TMP102_Py)
+#
+# Thanks to Brandon Williams. This library was based off his 
+# original library created 07/15/2020 and can be found here:
+# https://github.com/will2055/AS6212-Arduino-Library/
+#
+# Thanks to Madison Chodikov @ SparkFun Electronics
+# for code examples from TMP117 Arduino Library
+# (https://github.com/sparkfun/SparkFun_TMP117_Arduino_Library)
+# 
+# This python library supports the SparkFun Electroncis qwiic 
+# qwiic sensor/board ecosystem on a Raspberry Pi (and compatable) single
+# board computers. 
+#
+# More information on qwiic is at https://www.sparkfun.com/qwiic
+#
+# Do you like this library? Help support SparkFun. Buy a board!
+#
+#==================================================================================
+# Copyright (c) 2021 SparkFun Electronics
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy 
+# of this software and associated documentation files (the "Software"), to deal 
+# in the Software without restriction, including without limitation the rights 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
+# copies of the Software, and to permit persons to whom the Software is 
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all 
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+# SOFTWARE.
+#==================================================================================
+
 """
 qwiic_as6212
 ============
@@ -198,8 +250,6 @@ class QwiicAs6212Sensor(object):
         self.tempF = self.read_temp_c() * 9.0 / 5.0 + 32.0
         return self.tempF
 
-
-
     def set_alert_polarity(self, polarity):
         """
         Set the polarity of Alert
@@ -362,16 +412,6 @@ class QwiicAs6212Sensor(object):
         configReg = self.read_config()
         return self.bit_read(configReg, AS6212_CONFIG_BIT_SINGLE_SHOT)
 
-
-
-
-
-
-
-
-
-
-
     def set_low_temp_c(self, temperature):
         """
         Sets T_LOW (degrees C) alert threshold
@@ -453,16 +493,6 @@ class QwiicAs6212Sensor(object):
         
         return self.read_high_temp_c()*9.0/5.0 + 32.0
 
-
-
-            
-        
-
-
-
-
-
-
     def bit_read(self, value, bit):
         return (((value) >> (bit)) & 0x01)
 
@@ -497,8 +527,3 @@ class QwiicAs6212Sensor(object):
             if i == 8:
                 dataBin += " "
         print(dataBin)        
-        
-
-
-
- 
