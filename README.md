@@ -67,12 +67,17 @@ For the current user:
 ```sh
 pip install sparkfun-qwiic-as6212
 ```
+
+### Local Installation
+
 To install, make sure the setuptools package is installed on the system.
 
 Direct installation at the command line:
 ```sh
 python setup.py install
 ```
+
+### Rebuild Package
 
 To build a package for use with pip:
 ```sh
